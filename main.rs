@@ -377,6 +377,18 @@ fn aur_pkgbuild(
 
 async fn commit_and_push(dir: &std::path::Path, message: &str) -> Result<()> {
     git(&["add", "-A"], Some(dir)).await?;
+    let status = Command::new("git")
+        .args(["diff", "--cached", "--quiet"])
+        .current_dir(dir)
+        .status()
+        .await
+        .wrap("checking for staged changes")?;
+    if status.success() {
+        return Ok(());
+    }
+    if status.code() != Some(1) {
+        return Err(Err::new("git diff --cached failed"));
+    }
     git(&["commit", "-m", message], Some(dir)).await?;
     git(&["push"], Some(dir)).await
 }
