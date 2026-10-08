@@ -413,10 +413,15 @@ fn config_path() -> Result<PathBuf> {
 
 fn git_url(tap: &str) -> String {
     if tap.contains("://") || tap.starts_with("git@") {
-        tap.to_owned()
-    } else {
-        format!("https://github.com/{tap}.git")
+        return tap.to_owned();
     }
+    let (owner, repo) = tap.split_once('/').unwrap_or((tap, "tap"));
+    let repo = if repo.starts_with("homebrew-") {
+        repo.to_owned()
+    } else {
+        format!("homebrew-{repo}")
+    };
+    format!("https://github.com/{owner}/{repo}.git")
 }
 
 fn validate_name(name: &str) -> Result<()> {
@@ -477,4 +482,25 @@ fn sh_double_escape(value: &str) -> String {
         .replace('$', "\\$")
         .replace('`', "\\`")
         .replace('\n', " ")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::git_url;
+
+    #[test]
+    fn homebrew_tap_short_name_expands_to_repository_name() {
+        assert_eq!(
+            git_url("vehmloewff/tap"),
+            "https://github.com/vehmloewff/homebrew-tap.git"
+        );
+    }
+
+    #[test]
+    fn explicit_homebrew_repo_is_preserved() {
+        assert_eq!(
+            git_url("vehmloewff/homebrew-tap"),
+            "https://github.com/vehmloewff/homebrew-tap.git"
+        );
+    }
 }
