@@ -1,0 +1,20 @@
+[package]
+name = "packpub"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "packpub"
+path = "main.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+dialoguer = "0.11"
+err = { git = "https://github.com/Vehmloewff/err" }
+futures-util = "0.3"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "stream"] }
+serde = { version = "1", features = ["derive"] }
+sha2 = "0.10"
+tempfile = "3"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "process", "fs"] }
+toml = "0.8"
