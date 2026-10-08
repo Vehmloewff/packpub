@@ -176,6 +176,17 @@ async fn publish(
         return Err(Err::new("provide at least one platform URL"));
     }
 
+    let aur_artifacts: Vec<_> = artifacts
+        .iter()
+        .filter(|artifact| artifact.platform.starts_with("linux-"))
+        .cloned()
+        .collect();
+    if aur_artifacts.is_empty() {
+        return Err(Err::new(
+            "provide at least one Linux URL for the AUR package",
+        ));
+    }
+
     let desc = description.as_deref().unwrap_or(&config.description);
     let home = homepage.as_deref().unwrap_or(&config.homepage);
     let lic = license.as_deref().unwrap_or(&config.license);
@@ -225,7 +236,7 @@ async fn publish(
     )
     .await
     .wrap("cloning AUR repository")?;
-    let pkgbuild = aur_pkgbuild(name, &aur_name, version, desc, home, lic, &artifacts);
+    let pkgbuild = aur_pkgbuild(name, &aur_name, version, desc, home, lic, &aur_artifacts);
     fs::write(aur_dir.path().join("PKGBUILD"), pkgbuild)
         .await
         .wrap("writing PKGBUILD")?;
@@ -323,7 +334,7 @@ fn aur_pkgbuild(
             .collect::<Vec<_>>()
             .join(" "),
     );
-    out.push_str(")\nsource=(\n");
+    out.push_str(")\nmakedepends=('unzip')\nsource=(\n");
     for a in artifacts {
         out.push_str(&format!(
             "  '{}::{}'\n",
@@ -331,15 +342,36 @@ fn aur_pkgbuild(
             sh_single_escape(&a.url)
         ));
     }
+    out.push_str(")\nnoextract=(");
+    out.push_str(
+        &artifacts
+            .iter()
+            .map(|a| format!("'{}'", a.platform))
+            .collect::<Vec<_>>()
+            .join(" "),
+    );
     out.push_str(")\nsha256sums=(\n");
     for a in artifacts {
         out.push_str(&format!("  '{}'\n", a.sha256));
     }
-    out.push_str(")\n\npackage() {\n");
+    out.push_str(")\n\npackage() {\n  local artifact\n  case \"$CARCH\" in\n");
     for a in artifacts {
-        out.push_str(&format!("  if [[ \"$CARCH\" == '{}' ]]; then\n    install -Dm755 \"$srcdir/{}\" \"$pkgdir/usr/bin/{}\"\n  fi\n", a.arch, a.platform, name));
+        out.push_str(&format!(
+            "    '{}' ) artifact=\"$srcdir/{}\" ;;\n",
+            a.arch, a.platform
+        ));
     }
-    out.push_str("}\n");
+    out.push_str("    *) return 1 ;;\n  esac\n  if unzip -tq \"$artifact\" >/dev/null 2>&1; then\n    unzip -p \"$artifact\" '");
+    out.push_str(name);
+    out.push_str("' > \"$srcdir/");
+    out.push_str(name);
+    out.push_str("\"\n    install -Dm755 \"$srcdir/");
+    out.push_str(name);
+    out.push_str("\" \"$pkgdir/usr/bin/");
+    out.push_str(name);
+    out.push_str("\"\n  else\n    install -Dm755 \"$artifact\" \"$pkgdir/usr/bin/");
+    out.push_str(name);
+    out.push_str("\"\n  fi\n}\n");
     out
 }
 
