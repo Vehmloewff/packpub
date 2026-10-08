@@ -27,7 +27,6 @@ enum Commands {
         /// Package name
         name: String,
         /// Release version (for example 1.2.3)
-        #[arg(long)]
         version: String,
         #[arg(long)]
         description: Option<String>,

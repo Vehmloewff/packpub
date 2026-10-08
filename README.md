@@ -18,7 +18,7 @@ Git credentials must already work for both destinations: write access to the tap
 Supply at least one platform-specific **public HTTP(S) URL**. URLs must return the artifact directly without authentication. `packpub` streams each artifact to calculate SHA-256, then inserts URLs and checksums into both package definitions.
 
 ```sh
-packpub publish widget --version 1.2.3 \
+packpub publish widget 1.2.3 \
   --linux-x86-64 https://downloads.example.com/widget-1.2.3-linux-x86_64 \
   --linux-aarch64 https://downloads.example.com/widget-1.2.3-linux-aarch64 \
   --macos-x86-64 https://downloads.example.com/widget-1.2.3-darwin-x86_64 \
@@ -27,7 +27,7 @@ packpub publish widget --version 1.2.3 \
 
 Available platforms: `linux-x86-64`, `linux-aarch64`, `macos-x86-64`, `macos-aarch64`. `--description`, `--homepage`, and `--license` override setup metadata for a release.
 
-AUR `PKGBUILD` currently expects each downloaded artifact itself to be the executable. Homebrew formula extracts standard archives when applicable. Each publish clones the tap into a temporary directory, writes/commits/pushes `Formula/<name>.rb`, then clones/updates/commits/pushes the AUR package repository. Git identity must be configured.
+AUR `PKGBUILD` accepts either a direct executable URL or a ZIP containing a binary named after the package. Homebrew formula extracts standard archives when applicable. Each publish clones the tap into a temporary directory, writes/commits/pushes `Formula/<name>.rb`, then clones/updates/commits/pushes the AUR package repository. Git identity must be configured.
 
 ## Build
 
